@@ -1,6 +1,5 @@
 import streamlit as st
 import requests
-import time
 
 # --- SETTINGS ---
 API_KEY = "b19d9c7090cc4fb49f626c52a0ded81f"
