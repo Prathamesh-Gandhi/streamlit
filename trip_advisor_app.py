@@ -3,19 +3,16 @@ import requests
 import time
 
 # --- SETTINGS ---
-API_KEY = "b19d9c7090cc4fb49f626c52a0ded81f"  # Replace with your actual Geoapify API key
+API_KEY = "b19d9c7090cc4fb49f626c52a0ded81f"
 CATEGORIES = "tourism.attraction"
 
-# --- PAGE CONFIG ---
-st.set_page_config(page_title="Trip Advisor", layout="wide", initial_sidebar_state="collapsed")
-
-# --- Initialize session state for page navigation ---
 if "page" not in st.session_state:
-    st.session_state["page"] = "Welcome"  # Start on the welcome page
-
+    st.session_state["page"] = "Welcome"
 # --- Welcome Page ---
 if st.session_state["page"] == "Welcome":
-    # --- Logo Animation ---
+    st.set_page_config(page_title="Trip Advisor", layout="wide", initial_sidebar_state="collapsed")
+
+    # --- Custom CSS for animations and button ---
     st.markdown("""
         <style>
             .pink-title {
@@ -23,127 +20,141 @@ if st.session_state["page"] == "Welcome":
                 color: #FFB6C1;
                 text-align: center;
                 font-weight: bold;
-                animation: logoFadeIn 3s ease-in-out forwards;
-                opacity: 0;
+                
             }
-
             .small-sub {
                 font-size: 2.5em;
-                color: #FAFAFA;
+                color: #FFB6C1;
                 text-align: center;
-                animation: subFadeIn 3s ease-in-out forwards;
-                animation-delay: 3s;
-                opacity: 0;
+                
             }
 
-            @keyframes logoFadeIn {
-                0% { opacity: 0; transform: scale(0.8); }
-                100% { opacity: 1; transform: scale(1); }
+            .button-container {
+                display: flex;
+                justify-content: center;
+                margin-top: 50px;
+                
             }
 
-            @keyframes subFadeIn {
-                0% { opacity: 0; transform: translateY(20px); }
-                100% { opacity: 1; transform: translateY(0); }
+            .stButton>button {
+                background-color: #FFB6C1;
+                color: black;
+                font-size: 1.5em;
+                font-weight: bold;
+                padding: 0.75em 2em;
+                border-radius: 12px;
+                border: none;
             }
 
-            input[type="text"], .stTextInput input {
-                background-color: #262730 !important;
-                color: #FAFAFA !important;
-                border: 1px solid #FAFAFA !important;
-                font-size: 1.25em;
-            }
+           
         </style>
     """, unsafe_allow_html=True)
 
-    # --- Display Welcome Animation ---
+    # --- Animated Title & Subtitle ---
     st.markdown('<div class="pink-title">✈️ Trip Advisor ✈️</div>', unsafe_allow_html=True)
     st.markdown('<div class="small-sub">Welcome, Your Trip Assistant to Dream Vacation</div>', unsafe_allow_html=True)
 
-    # --- Small Delay for Animations to Feel Smooth ---
-    time.sleep(6)
+    # --- Hidden then visible button ---
+    st.markdown('<div class="button-container">', unsafe_allow_html=True)
+    if st.button("Let's Go"):
+        st.session_state["page"] = "Trip Inputs"
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- Button to Transition to Next Page ---
-    st.markdown("### Get started by clicking below to plan your trip!")
-    
-    if st.button("Start Planning"):
-        st.session_state["page"] = "Trip Inputs"  # Move to the next page automatically
 
 # --- Trip Inputs Page ---
-elif st.session_state["page"] == "Trip Inputs":
-    # --- City and Distance Input Page (No animations) ---
+if st.session_state["page"] == "Trip Inputs":
     st.markdown("### 🌍 Enter your destination city:")
     city_input = st.text_input("City Name:")
+    
+    st.markdown("### 📏 Now enter your preferred distance from the city center (in kilometers):")
+    radius_input = st.text_input("Distance in km:")
 
-    if city_input:
-        st.session_state["city"] = city_input
-
-        st.markdown("### 📏 Now enter your preferred distance from the city center (in kilometers):")
-        radius_input = st.text_input("Distance in km:")
-
-        if radius_input:
+    # Button to trigger exploration
+    if st.button("🔍 Explore"):
+        if city_input and radius_input:
             try:
                 radius_km = int(radius_input)
                 radius_meters = radius_km * 1000
-
-                # --- Get Coordinates ---
-                geo_url = f"https://api.geoapify.com/v1/geocode/search?text={city_input}&apiKey={API_KEY}"
-                geo_resp = requests.get(geo_url).json()
-
-                if geo_resp.get("features"):
-                    lon, lat = geo_resp["features"][0]["geometry"]["coordinates"]
-                    # --- Get Places ---
-                    places_url = (
-                        f"https://api.geoapify.com/v2/places?"
-                        f"categories={CATEGORIES}&"
-                        f"filter=circle:{lon},{lat},{radius_meters}&"
-                        f"bias=proximity:{lon},{lat}&"
-                        f"limit=10&apiKey={API_KEY}"
-                    )
-                    places_resp = requests.get(places_url).json()
-                    places = places_resp.get("features", [])
-
-                    if places:
-                        st.subheader(f"Top Tourist Attractions in {city_input.title()}:")
-                        for place in places:
-                            props = place["properties"]
-                            name = props.get("name", "Unnamed Location")
-                            if not name or name.strip().lower() == "unnamed location":
-                                continue
-                            address = props.get("formatted", "No address available")
-                            dist = props.get("distance", "N/A")
-                            categories = props.get("categories", [])
-                            category_clean = categories[-1].split(".")[-1] if categories else "Unknown"
-
-                            output = f"""
-                            🏷️  {name}
-                            🏠 Address : {address}
-                            📐 Distance: {dist} meters
-                            🧭 Type    : {category_clean}
-                            """
-                            st.markdown(f"```text\n{output}\n```")
-
-                        # --- MAP DISPLAY ---
-                        import folium
-                        from streamlit_folium import st_folium
-
-                        st.subheader("🗺️ View on Map:")
-                        m = folium.Map(location=[lat, lon], zoom_start=13)
-                        for place in places:
-                            props = place["properties"]
-                            name = props.get("name")
-                            if not name or name.strip().lower() == "unnamed location":
-                                continue
-                            loc = place["geometry"]["coordinates"]
-                            folium.Marker(
-                                [loc[1], loc[0]],
-                                tooltip=name,
-                                popup=props.get("formatted", "")
-                            ).add_to(m)
-                        st_folium(m, width=700, height=500)
-
-                    else:
-                        st.warning("No tourist attractions found nearby.")
-                else:
-                    st.error(f"Could not find coordinates for the city: {city_input}")
+                st.session_state["city"] = city_input
+                st.session_state["radius"] = radius_meters
+                st.session_state["trigger_explore"] = True
             except ValueError:
                 st.error("Please enter a valid number for distance (in km).")
+        else:
+            st.warning("Please fill in both fields before exploring.")
+
+    # Show results only if 'Explore' has been triggered
+    if st.session_state.get("trigger_explore", False):
+        city_input = st.session_state["city"]
+        radius_meters = st.session_state["radius"]
+
+        geo_url = f"https://api.geoapify.com/v1/geocode/search?text={city_input}&apiKey={API_KEY}"
+        geo_resp = requests.get(geo_url).json()
+
+        if geo_resp.get("features"):
+            lon, lat = geo_resp["features"][0]["geometry"]["coordinates"]
+
+            places_url = (
+                f"https://api.geoapify.com/v2/places?"
+                f"categories={CATEGORIES}&"
+                f"filter=circle:{lon},{lat},{radius_meters}&"
+                f"bias=proximity:{lon},{lat}&"
+                f"limit=10&apiKey={API_KEY}"
+            )
+            places_resp = requests.get(places_url).json()
+            places = places_resp.get("features", [])
+
+            if places:
+                st.subheader(f"Top Tourist Attractions in {city_input.title()}:")
+                for place in places:
+                    props = place["properties"]
+                    name = props.get("name", "Unnamed Location")
+                    if not name or name.strip().lower() == "unnamed location":
+                        continue
+                    address = props.get("formatted", "No address available")
+                    address_line1 = props.get("address_line1", "")
+                    dist = props.get("distance", "N/A")
+                    categories = props.get("categories", [])
+
+                    if name and address_line1 and address_line1 not in name:
+                        name_display = f"{name} ({address_line1})"
+                    else:
+                        name_display = name
+
+                    printed = set()
+                    category_labels = []
+
+                    for cat in categories:
+                        label = None
+                        if "artwork" in cat:
+                            label = props.get('artwork', {}).get('artwork_type')
+                        elif "memorial" in cat:
+                            label = props.get('memorial', {}).get('memorial_type')
+                        elif "historic" in cat:
+                            historic = props.get('historic')
+                            if isinstance(historic, dict):
+                                label = historic.get('type')
+
+                        if label:
+                            label = str(label).capitalize()
+                        else:
+                            label = cat.split('.')[-1].replace('_', ' ').capitalize()
+
+                        if label not in printed:
+                            category_labels.append(label)
+                            printed.add(label)
+
+                    category_clean = category_labels[-1] if category_labels else "Unknown"
+                    output = f"""
+                    🏷️ <b>{name_display}</b><br>
+                    🏠 Address : {address}<br>
+                    📐 Distance: {dist} meters<br>
+                    🧭 Type    : {category_clean}<br>
+                        <hr>
+                    """
+                    st.markdown(output, unsafe_allow_html=True)
+            else:
+                st.warning("No tourist attractions found nearby.")
+        else:
+            st.error(f"Could not find coordinates for the city: {city_input}")
+
