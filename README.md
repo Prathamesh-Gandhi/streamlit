@@ -36,7 +36,7 @@ pip install streamlit requests
 1. **Clone this repository or save the script as `app.py`**:
 
 ```bash
-git clone https://github.com/yourusername/trip-advisor-streamlit.git
+git clone https://github.com/Prathamesh-Gandhi/trip-advisor-streamlit.git
 cd trip-advisor-streamlit
 ```
 
