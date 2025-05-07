@@ -43,7 +43,7 @@ cd trip-advisor-streamlit
 2. **Run the app using Streamlit**:
 
 ```bash
-streamlit run app.py
+streamlit run trip_advisor_app.py
 ```
 
 3. **Interact through the browser**:
